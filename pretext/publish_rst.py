@@ -1,3 +1,5 @@
+import re
+
 import attr
 import bs4
 import docutils.core
@@ -69,3 +71,52 @@ def render_rst_file(filename, desouper='lxml'):
         _remove_section_div(div)
 
     return RenderedRst(title, main_doc, metadata)
+
+
+_RE_META_PARSE = re.compile('^:([^:]+): (.*)$')
+
+
+def parse_meta(path):
+    meta = {}
+    with open(path, 'r') as rstfile:
+        looking_for_start = True
+        indent = None
+        for line in rstfile:
+            if looking_for_start:
+                if line == '.. meta::\n':
+                    looking_for_start = False
+                    continue
+                else:
+                    raise ValueError(
+                        'The file "{}" did not have ".. meta::"'
+                        ' section.'.format(path)
+                    )
+
+            line_indent = get_line_indent(line)
+            if not line_indent:
+                break
+            if indent is None:
+                indent = line_indent
+            elif line_indent != indent:
+                raise ValueError(
+                    'Indent error while parsing meta section for'
+                    ' file {}.'.format(path)
+                )
+
+            remaining = line.lstrip()
+            match = _RE_META_PARSE.match(remaining)
+            if match is None:
+                raise ValueError(
+                    'Failed to parse meta value for file {}'.format(path)
+                )
+            meta[match.group(1)] = match.group(2)
+
+    return meta
+
+
+_RE_INDENT = re.compile('^( *)')
+
+
+def get_line_indent(line):
+    match = _RE_INDENT.match(line)
+    return match.group(1)

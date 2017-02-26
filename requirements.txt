@@ -1,0 +1,6 @@
+attrs>=16,<17
+beautifulsoup4>=4.5.3,<5
+docutils>=0.13.1,<14
+iso8601>=0.1.11,<0.2
+jinja2>=2.9.5,<3
+lxml>=3.7.3,<4
