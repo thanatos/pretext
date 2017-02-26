@@ -49,13 +49,17 @@ class PretextBlog(object):
         page = self.renderer.render_post(full_path)
         return _response.text_response(page, mimetype='text/html')
 
-    def wsgi_app(self, environ, start_response):
-        request = _request.request_from_wsgi(environ)
+    def process_request(self, request):
         try:
             response = self.router.route_request(request)
         except _errors.HttpError as err:
             response = _errors.to_simple_text_response(err)
 
+        return response
+
+    def wsgi_app(self, environ, start_response):
+        request = _request.request_from_wsgi(environ)
+        response = self.process_request(request)
         return response.return_from_wsgi_app(start_response)
 
 
