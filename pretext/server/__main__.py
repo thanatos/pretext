@@ -14,8 +14,9 @@ from .. import post_index
 
 
 class PretextBlog(object):
-    def __init__(self, blog_path):
+    def __init__(self, blog_path, renderer):
         self.blog_path = blog_path
+        self.renderer = renderer
         self.index = post_index.PostIndex(blog_path)
 
         self.router = _router.Router()
@@ -45,7 +46,7 @@ class PretextBlog(object):
 
         post_path = self.index.path_for_dated_slug(year, month, slug)
         full_path = _path.join(self.blog_path, post_path)
-        page = render.render_post(None, full_path)
+        page = self.renderer.render_post(full_path)
         return _response.text_response(page, mimetype='text/html')
 
     def wsgi_app(self, environ, start_response):
@@ -61,6 +62,7 @@ class PretextBlog(object):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('blog_path')
+    parser.add_argument('--template-config', action='store')
     pargs = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO)
@@ -69,7 +71,12 @@ def main():
     index = post_index.PostIndex(pargs.blog_path)
     index.rebuild_index()
 
-    blog = PretextBlog(pargs.blog_path)
+    if pargs.template_config is None:
+        renderer = render.default_renderer()
+    else:
+        renderer = render.render_config_from_file(pargs.template_config)
+
+    blog = PretextBlog(pargs.blog_path, renderer)
     httpd = simple_server.make_server('localhost', 8000, blog.wsgi_app)
     print('Serving HTTP on port 8000...')
 
